@@ -1,0 +1,45 @@
+# Production compose skeleton — fill in before VPS deploy (Milestone 10).
+
+services:
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - web
+      - api
+
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    image: ${TURBOK_API_IMAGE}
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
+      WEB_ORIGIN: ${WEB_ORIGIN}
+      NODE_ENV: production
+
+  web:
+    image: ${TURBOK_WEB_IMAGE}
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NODE_ENV: production
+
+  worker:
+    image: ${TURBOK_WORKER_IMAGE}
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      NODE_ENV: production
+
+volumes:
+  postgres_data:
