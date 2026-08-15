@@ -1,0 +1,4 @@
+{
+  "name": "turbok",
+  "install": "./scripts/verify-env.sh"
+}
