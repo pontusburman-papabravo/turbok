@@ -1,0 +1,25 @@
+---
+description: Turbok technical stack and coding conventions
+globs: "**/*.{ts,tsx,js,jsx,json,yml,yaml}"
+alwaysApply: false
+---
+
+# Stack (mandatory)
+
+- TypeScript throughout application layer
+- Monorepo: `apps/web`, `apps/api`, `apps/worker`, `packages/*`
+- Frontend: Next.js, React, Tailwind, MapLibre GL JS
+- Backend: Fastify, REST `/api/v1/...`
+- Database: PostgreSQL + PostGIS (hard requirement)
+- Query layer: Kysely with SQL migrations
+- Job queue: PostgreSQL-based (pg-boss), no Redis requirement in v1
+- PDF: HTML/CSS templates + Playwright/Chromium (worker)
+- Auth MVP: email + password (Argon2id), server-side sessions
+
+# Conventions
+
+- Parameterized SQL only; PostGIS operations may use explicit SQL
+- Media never stored in PostgreSQL; use StorageProvider abstraction
+- Strip EXIF from uploaded images
+- Structured JSON logging with request id; no secrets in logs
+- Private trips by default; public requires explicit opt-in

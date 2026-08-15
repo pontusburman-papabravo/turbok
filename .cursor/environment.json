@@ -1,0 +1,4 @@
+{
+  "name": "turbok",
+  "install": "echo 'Turbok: documentation-only phase. Run pnpm install after Milestone 1.'"
+}
