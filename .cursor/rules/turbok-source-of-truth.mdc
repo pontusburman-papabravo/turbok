@@ -8,6 +8,7 @@ alwaysApply: true
 - `docs/PRODUCT_SPEC.md` is the authoritative product specification.
 - `docs/MVP.md` defines P0/P1 scope for the first geographic pilot.
 - `docs/ARCHITECTURE.md` defines technical structure and stack choices.
+- `.cursor/rules/turbok-auth.mdc` defines multi-provider auth architecture.
 - When in doubt, prefer the spec over ad-hoc suggestions.
 
 # Scope control

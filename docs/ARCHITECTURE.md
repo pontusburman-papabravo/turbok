@@ -56,7 +56,7 @@ Detta dokument beskriver den rekommenderade tekniska strukturen för Turbok v1. 
 
 ```text
 /                     Landing / inspiration
-/login, /register     Auth
+/login, /register     Auth (email/password + Google + Apple buttons)
 /trips                Mina turer
 /trips/new            Skapa tur
 /trips/[id]           Redigera/visa tur
@@ -69,10 +69,131 @@ Detta dokument beskriver den rekommenderade tekniska strukturen för Turbok v1. 
 
 - **Fastify** med TypeScript
 - REST under `/api/v1/`
-- Session-baserad auth (HttpOnly, Secure, SameSite cookies)
-- Argon2id för lösenord
+- Multi-provider auth: password, Google OIDC, Apple OIDC → gemensam server-side Turbok-session
 - Rate limiting per IP och per användare
 - Strukturerad JSON-loggning med request id
+
+### Autentisering
+
+Turbok-sessioner är **alltid** server-side (`sessions`-tabell + HttpOnly-cookie). Provider-token används endast under callback-verifiering, aldrig som applikationssession.
+
+#### Email + password
+
+- Argon2id för `auth_identities.password_hash` (endast `provider = password`)
+- `POST /api/v1/auth/register`, `POST /api/v1/auth/login`
+- **`provider_subject`** = normaliserad email (deterministisk; se **Password identity** nedan)
+- Auth-lookup via `auth_identities`, **inte** via `users.primary_email`
+
+#### Google (OAuth 2.0 / OIDC)
+
+- Authorization Code flow
+- `GET /api/v1/auth/google/start` → redirect till Google
+- `GET /api/v1/auth/google/callback` → verifiera token, skapa/hitta user via `provider_subject`
+- Krav: `state`, `nonce`, PKCE där tillämpligt; verifiera issuer, audience/client_id, signatur, expiry
+- **Identitet = verifierat OIDC `sub`** — email är metadata/signal, inte identitetsnyckel
+- Google-token får **aldrig** bli Turbok-session
+
+#### Sign in with Apple (OIDC)
+
+- Authorization Code flow
+- `GET /api/v1/auth/apple/start` → redirect till Apple
+- `POST /api/v1/auth/apple/callback` (Apple kräver POST för callback)
+- Krav: `state`, `nonce`; verifiera issuer, audience/client_id, signatur, expiry
+- **Identitet = Apple OIDC `sub`**; stöd **Hide My Email**
+- Email/name från Apple kan vara tillgängligt endast första gången — får **inte** krävas vid senare login
+- Implementationen får inte förlita sig på att Apple alltid returnerar email i callback/token
+- Apple-token får **aldrig** bli Turbok-session
+
+#### Gemensamma auth-endpoints
+
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
+GET  /api/v1/auth/google/start
+GET  /api/v1/auth/google/callback
+GET  /api/v1/auth/apple/start
+POST /api/v1/auth/apple/callback
+```
+
+Session-cookie: HttpOnly, Secure (prod), SameSite=Lax, restriktiv Path/Domain.
+
+### Password identity (normalisering)
+
+För `provider = password`:
+
+| Regel | Detalj |
+| --- | --- |
+| `provider_subject` | Normaliserad emailadress |
+| Normalisering | Deterministisk: trim whitespace, lowercase hela adressen |
+| Domän | Lowercase enligt ovan; ingen provider-specifik alias-normalisering (t.ex. ingen Gmail-dot-regel) |
+| Unikhet | `UNIQUE(provider, provider_subject)` förhindrar dubbelregistrering av samma normaliserade email |
+| Auth-nyckel | **`users.primary_email` används inte** för login/register-lookup |
+
+### OAuth/OIDC transient state
+
+Google- och Apple-flöden ska lagra följande **server-side** eller kryptografiskt säkert (t.ex. signerat, krypterat):
+
+- `state`
+- `nonce`
+- PKCE `code_verifier` (där tillämpligt)
+
+Krav:
+
+| Egenskap | Krav |
+| --- | --- |
+| Livslängd | Kortlivat (minuter, inte timmar) |
+| Användning | Single-use |
+| Bindning | Bundet till specifikt auth-försök |
+| Efter callback | Ogiltigförklaras omedelbart |
+| Replay | Skydd mot återanvändning av samma state/nonce/code_verifier |
+
+### Callback- och redirect-säkerhet
+
+| Regel | Detalj |
+| --- | --- |
+| `redirect_uri` | Måste vara explicit allowlistad/konfigurerad (env) |
+| Klientinput | Klienten får **inte** skicka valfri `redirect_uri` |
+| Post-login redirect | Endast godkända interna destinationsvägar (allowlist); **inga open redirects** |
+| Provider callback | Endast konfigurerade callback-URL:er mot Google/Apple |
+
+### Session-säkerhet (Turbok-session)
+
+| Regel | Detalj |
+| --- | --- |
+| Session-id | Kryptografiskt säker slump (t.ex. 32+ bytes, hex/base64url) |
+| Lagring | Server-side i `sessions`; cookie innehåller endast opaque token |
+| Rotation | **Ny session skapas vid lyckad login**; gammal session invalideras om relevant |
+| Provider-token | OAuth access token och ID token får **aldrig** lagras eller återanvändas som session |
+| Expiry | Absolut `expires_at`; ingen sliding-only utan tydlig max-livstid |
+| Logout | Raderar/invaliderar server-side session |
+| Cookie HttpOnly | Ja — ej läsbar från JavaScript |
+| Cookie Secure | Ja i produktion |
+| Cookie SameSite | `Lax` som default |
+| Cookie Path/Domain | Så restriktiva som praktiskt möjligt |
+
+### Account linking-policy
+
+Arkitekturen ska stödja flera `auth_identities` per `users`-rad:
+
+```text
+Pontus (user)
+├── password  (auth_identity)
+├── google    (auth_identity)
+└── apple     (auth_identity)
+```
+
+| Scenario | Policy |
+| --- | --- |
+| Känd `(provider, provider_subject)` | Logga in till kopplad `user` |
+| Ny provider-identitet, oinloggad | Skapa ny `user` + ny `auth_identity` |
+| Ny provider-identitet, inloggad | Länka till aktuell `user` — kräver **giltig aktuell Turbok-session** + framgångsrik autentisering hos nya providern |
+| Samma email från två providers | **Automatisk merge förbjuden** |
+| Provider-verifierad email | Signal vid linking; inte enda bevis för att slå ihop två befintliga konton |
+| Identity redan kopplad till annan `user` | **Får aldrig flyttas automatiskt** — explicit fel; account-recovery/merge-process senare |
+
+UI för "Koppla Google/Apple" och "Ta bort inloggningssätt" byggs inte i Milestone 1, men datamodellen och API-grunden ska stödja det.
 
 ### API-grupper (planerat)
 
@@ -93,6 +214,66 @@ Detta dokument beskriver den rekommenderade tekniska strukturen för Turbok v1. 
 ## Databas
 
 **PostgreSQL 16+ med PostGIS 3+** — hårt krav.
+
+### Auth-tabeller (Milestone 1)
+
+```text
+users
+  id              uuid PK
+  primary_email   text nullable
+  display_name    text nullable
+  role            text NOT NULL DEFAULT 'user'
+  created_at      timestamptz
+  updated_at      timestamptz
+
+auth_identities
+  id                uuid PK
+  user_id           uuid NOT NULL FK → users
+  provider          text NOT NULL CHECK (provider IN ('password','google','apple'))
+  provider_subject  text NOT NULL
+  email             text nullable
+  password_hash     text nullable
+  created_at        timestamptz
+  updated_at        timestamptz
+  UNIQUE (provider, provider_subject)
+  CHECK (
+    (provider = 'password' AND password_hash IS NOT NULL)
+    OR
+    (provider IN ('google', 'apple') AND password_hash IS NULL)
+  )
+
+sessions
+  id          text PK
+  user_id     uuid NOT NULL FK → users
+  expires_at  timestamptz NOT NULL
+  created_at  timestamptz
+```
+
+**Invariants:**
+
+- `provider` ∈ `password` | `google` | `apple`
+- `provider_subject` och `user_id` alltid NOT NULL
+- `password_hash` NOT NULL endast när `provider = 'password'`; NULL för google/apple
+- `email` nullable (särskilt för externa providers och Hide My Email)
+
+### Environment / secrets (auth)
+
+Dokumenteras i `.env.example` — inga riktiga värden i repo:
+
+```text
+DATABASE_URL
+SESSION_SECRET
+
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI
+
+APPLE_CLIENT_ID
+APPLE_TEAM_ID
+APPLE_KEY_ID
+APPLE_PRIVATE_KEY      # secret; aldrig i repository
+APPLE_REDIRECT_URI
+```
 
 ### Spatial
 
@@ -153,6 +334,8 @@ Format: A4 (MVP), A5 (P2). Svartvitt-optimerade mallar.
 
 ## Autentisering och behörighet
 
+Alla inloggningsvägar (password, Google, Apple) slutar i samma Turbok-sessionmodell. Se avsnittet **Autentisering** ovan.
+
 | Roll | Rättigheter |
 | --- | --- |
 | `user` | Egna turer, community-bidrag |
@@ -165,7 +348,7 @@ Format: A4 (MVP), A5 (P2). Svartvitt-optimerade mallar.
 - `/health` — process lever
 - `/ready` — kan nå PostgreSQL och kritiska tjänster
 - Loggar: request id, route, status, duration, error code
-- Inga lösenord, tokens eller PII i loggar
+- Inga lösenord, OAuth-token, Apple private keys eller PII i loggar
 
 ## Docker Compose (produktion)
 

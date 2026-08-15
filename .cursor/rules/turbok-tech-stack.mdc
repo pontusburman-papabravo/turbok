@@ -14,7 +14,7 @@ alwaysApply: false
 - Query layer: Kysely with SQL migrations
 - Job queue: PostgreSQL-based (pg-boss), no Redis requirement in v1
 - PDF: HTML/CSS templates + Playwright/Chromium (worker)
-- Auth MVP: email + password (Argon2id), server-side sessions
+- Auth: `users` + `auth_identities` + `sessions`; providers: password (Argon2id), Google OIDC, Apple OIDC; DB CHECK constraints on `auth_identities`; OAuth transient state (state/nonce/PKCE) single-use; session rotation on login; no provider tokens as session
 
 # Conventions
 

@@ -37,11 +37,20 @@ Hög kvalitet på litet område före geografisk expansion. Varje segment ska ha
 
 ### Konto
 
-- [ ] Skapa konto (email + lösenord)
-- [ ] Logga in / logga ut
-- [ ] Session via säkra cookies
+- [ ] Skapa konto och logga in via **email + lösenord**
+- [ ] Logga in via **Google**
+- [ ] Logga in via **Sign in with Apple**
+- [ ] Logga ut
+- [ ] Session via säkra server-side cookies (HttpOnly, SameSite=Lax)
+- [ ] Samma Turbok-session oavsett inloggningsmetod
 
-> **Email-verifiering** ingår inte i P0. Milestone 1 levererar register/login/logout/session utan verifieringsflöde. Verifierad email krävs **före publik beta** (se nedan).
+> **Auth-arkitektur:** `users` separeras från `auth_identities` (password | google | apple). Se `docs/ARCHITECTURE.md`.
+
+> **Email-verifiering** och **password reset** ingår inte i P0/Milestone 1. Krävs före publik beta (se nedan).
+
+> **Provider linking/unlinking-UI** (koppla Google/Apple till befintligt konto) byggs inte i Milestone 1, men datamodellen ska stödja det.
+
+> **Säkerhet:** Se `docs/ARCHITECTURE.md` — DB CHECK på `auth_identities`, session rotation, OAuth transient state, ingen auto-merge på email, ingen open redirect.
 
 ### Planera
 
@@ -161,6 +170,7 @@ Se `PRODUCT_SPEC.md` §62. Särskilt:
 Produkten är redo för privat beta när P0 ovan är uppfyllt plus:
 
 - [ ] **Email-verifiering** implementerad (verifieringstoken, endpoint, mailadapter)
+- [ ] **Password reset** implementerad
 - [ ] Abisko–Nikkaluokta-dataset finns i databasen
 - [ ] Karta renderas korrekt i pilotområdet
 - [ ] Databasbackup konfigurerad (daglig, 30 dagar retention)

@@ -200,7 +200,7 @@ turbok/
 
 Se `docs/ARCHITECTURE.md`.
 
-Kärntabeller: users, sessions, trips, trip_days, trip_segments, trip_places, trail_nodes, trail_segments, places, ratings, comments, photos, condition_reports, official_alerts, huts, transports, data_sources, pdf_exports.
+Kärntabeller: users, auth_identities, sessions, trips, trip_days, trip_segments, trip_places, trail_nodes, trail_segments, places, ratings, comments, photos, condition_reports, official_alerts, huts, transports, data_sources, pdf_exports.
 
 ---
 
@@ -219,8 +219,48 @@ Kärntabeller: users, sessions, trips, trip_days, trip_segments, trip_places, tr
 
 - PDF: HTML/CSS + Playwright (worker)
 - Job queue: pg-boss (PDF, thumbnails, imports, weather, sync)
-- Auth MVP: email/lösenord, Argon2id, server-side session cookies (register/login/logout/session)
-- Email-verifiering: krävs före publik beta, inte i Milestone 1
+
+### Autentisering (Milestone 1)
+
+Turbok separerar **konto** (`users`) från **inloggningssätt** (`auth_identities`). Tre providers från start:
+
+| Provider | Metod |
+| --- | --- |
+| `password` | Email + lösenord, Argon2id |
+| `google` | OAuth 2.0 / OIDC Authorization Code |
+| `apple` | Sign in with Apple / OIDC |
+
+**Datamodell (auth):**
+
+```text
+users
+  id, primary_email, display_name, role, created_at, updated_at
+
+auth_identities
+  id, user_id, provider, provider_subject, email, password_hash (nullable),
+  created_at, updated_at
+  UNIQUE (provider, provider_subject)
+
+sessions
+  id, user_id, expires_at, created_at
+```
+
+**Principer:**
+
+- `users` har ingen `password_hash`. `users.primary_email` är **inte** auth-nyckel.
+- `auth_identities` har DB-invariants: `UNIQUE(provider, provider_subject)` + CHECK som tvingar `password_hash` endast för `provider=password`.
+- Provider access/ID-token får **aldrig** användas som Turbok-session.
+- Efter lyckad auth skapas server-side Turbok-session (kryptografiskt säker id, roteras vid login, absolut expiry, invalideras vid logout).
+- Cookie: HttpOnly, Secure (prod), SameSite=Lax; restriktiv Path/Domain.
+- Google/Apple: `state`, `nonce`, PKCE; transient state kortlivat, single-use, replay-skyddat; `redirect_uri` allowlistad.
+- Google: identitet = verifierat OIDC `sub`; email är metadata.
+- Apple: identitet = OIDC `sub`; Hide My Email; email/name kan saknas efter första inloggning.
+- Account linking: ingen auto-merge på email; identity som tillhör annan user flyttas aldrig automatiskt.
+
+Se `docs/ARCHITECTURE.md` för full säkerhetspolicy.
+
+**Ej i Milestone 1:** email-verifiering, password reset, UI för koppla/frikoppla providers (krävs före publik beta eller senare milestone).
+
 - Roller: user, moderator, editor, admin
 - Sök: PostgreSQL full-text + trigram
 

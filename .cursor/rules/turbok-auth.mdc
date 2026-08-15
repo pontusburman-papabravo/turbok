@@ -1,0 +1,77 @@
+---
+description: Turbok authentication architecture — multi-provider, identity separation, linking policy
+globs: "**/*.{ts,tsx,js,jsx,sql,md}"
+alwaysApply: false
+---
+
+# Identity model (mandatory)
+
+- `users` = Turbok account/person. **No `password_hash` on users.**
+- `auth_identities` = login methods (`password` | `google` | `apple`) linked to a user.
+- `sessions` = server-side Turbok sessions only.
+- **`users.primary_email` is not an auth key** — lookup/auth always via `auth_identities`.
+
+# Database invariants (`auth_identities`)
+
+Required constraints:
+
+- `provider` ∈ `password` | `google` | `apple`
+- `provider_subject` NOT NULL
+- `user_id` NOT NULL
+- `UNIQUE (provider, provider_subject)`
+- `password_hash` NOT NULL iff `provider = 'password'`
+- `password_hash` NULL iff `provider IN ('google', 'apple')`
+- `email` nullable (especially for external providers)
+
+Example CHECK:
+
+```sql
+CHECK (
+  (provider = 'password' AND password_hash IS NOT NULL)
+  OR
+  (provider IN ('google', 'apple') AND password_hash IS NULL)
+)
+```
+
+# Password identity
+
+- `provider_subject` = **normalized email** (deterministic; trim + lowercase domain rules documented in ARCHITECTURE)
+- No Gmail-dot normalization or other provider-specific alias guessing
+- `UNIQUE(provider, provider_subject)` prevents duplicate password registration for same normalized email
+
+# Providers (Milestone 1)
+
+1. **password** — Argon2id; hash only on `auth_identities` where `provider = password`.
+2. **google** — OIDC Authorization Code; identity = verified OIDC `sub`; email is metadata only.
+3. **apple** — Sign in with Apple / OIDC; identity = Apple OIDC `sub`; support Hide My Email; do not require email on subsequent logins.
+
+# OAuth/OIDC transient state
+
+Google/Apple flows must store `state`, `nonce`, and PKCE `code_verifier` (where applicable) server-side or cryptographically protected:
+
+- short-lived, single-use, bound to auth attempt, invalidated after callback, replay-protected
+
+# Callback / redirect security
+
+- `redirect_uri` must be explicitly allowlisted/configured — client cannot supply arbitrary redirect_uri
+- After login, only redirect to approved internal destination paths — no open redirects
+
+# Session rules
+
+- Cryptographically secure random session id; stored server-side only
+- **Rotate session on successful login**; never reuse OAuth access/ID token as session
+- Absolute expiry; invalidate on logout
+- Cookie: HttpOnly, Secure (prod), SameSite=Lax (default), restrictive Path/Domain
+
+# Account linking (security-critical)
+
+- **Never** auto-merge accounts based on email match alone
+- Known `provider_subject` → log in to linked user
+- Linking to logged-in user requires **valid current Turbok session** + successful new-provider auth
+- Provider identity already owned by another user → **never auto-move**; explicit error; account-recovery/merge process later
+- Provider-verified email is a signal, not sole proof for merging two existing accounts
+- Link/unlink UI is post-M1; schema must support multiple identities per user from day one
+
+# Out of scope for Milestone 1
+
+- email verification, password reset, provider link/unlink UI
