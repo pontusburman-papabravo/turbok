@@ -49,12 +49,22 @@ turbok/
 
 ## Lokal utveckling
 
-Applikationskod finns ännu inte. När Milestone 1 är implementerad förväntas lokal start ungefär så här:
+Applikationskod finns ännu inte. När Milestone 1 är implementerad:
+
+**Canonical — hela stacken i Docker:**
 
 ```bash
-# Förutsätter Docker och Node.js 22+
+cp .env.example .env
+docker compose -f infra/docker-compose.yml up --build
+```
+
+**Fast dev — valfritt (PostgreSQL i Docker, appar på hosten):**
+
+```bash
+cp .env.example .env
 docker compose -f infra/docker-compose.yml up -d postgres
 pnpm install
+pnpm db:migrate
 pnpm dev
 ```
 

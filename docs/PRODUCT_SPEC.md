@@ -179,8 +179,8 @@ Dynamisk info i utskrift med källa och tidstämpel. QR för att kontrollera än
 
 Se `docs/DATA_SOURCES.md` för detaljer.
 
-- **Lantmäteriet:** topografi, höjd, hydrografi, stigar, ortofoto
-- **SMHI:** väder, cachelagrat
+- **Lantmäteriet:** Topografi 50 (stigar, topografi, hydrografi, höjdkurvor); Turboks routningsgraf kurateras separat
+- **SMHI:** väder via `SNOW1gv1` (inte deprecated `PMP3gv2`), cachelagrat
 - **Naturvårdsverket:** skyddade områden
 - **Länsstyrelser:** ledstatus, avstängningar
 - **STF:** normaliserad stugdatabas (egen, ingen automatisk återpublicering utan avtal)
@@ -219,7 +219,8 @@ Kärntabeller: users, sessions, trips, trip_days, trip_segments, trip_places, tr
 
 - PDF: HTML/CSS + Playwright (worker)
 - Job queue: pg-boss (PDF, thumbnails, imports, weather, sync)
-- Auth MVP: email/lösenord, Argon2id, server-side session cookies
+- Auth MVP: email/lösenord, Argon2id, server-side session cookies (register/login/logout/session)
+- Email-verifiering: krävs före publik beta, inte i Milestone 1
 - Roller: user, moderator, editor, admin
 - Sök: PostgreSQL full-text + trigram
 

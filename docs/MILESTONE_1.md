@@ -48,8 +48,29 @@ turbok/
 
 - TypeScript strict i alla paket
 - Delade ESLint/Prettier-config i root
-- `pnpm dev` startar web + api (+ postgres via compose)
 - Inga hemligheter i repo; `.env.example` med alla variabler dokumenterade
+
+### Lokal utveckling (två lägen)
+
+**Canonical — hela stacken i Docker:**
+
+```bash
+cp .env.example .env
+docker compose -f infra/docker-compose.yml up --build
+```
+
+Detta startar postgres, api, web och worker. Ingen separat `pnpm dev` krävs.
+
+**Fast dev — valfritt, för snabbare iteration:**
+
+```bash
+docker compose -f infra/docker-compose.yml up -d postgres
+pnpm install
+pnpm db:migrate
+pnpm dev          # startar web (:3000) + api (:3001) på hosten
+```
+
+PostgreSQL körs i Docker; applikationerna körs på hosten med hot reload.
 
 ### 2. PostgreSQL + PostGIS
 
@@ -64,7 +85,6 @@ turbok/
 id            uuid PRIMARY KEY DEFAULT gen_random_uuid()
 email         text UNIQUE NOT NULL
 password_hash text NOT NULL
-email_verified_at timestamptz
 role          text NOT NULL DEFAULT 'user'
 created_at    timestamptz NOT NULL DEFAULT now()
 updated_at    timestamptz NOT NULL DEFAULT now()
@@ -75,6 +95,8 @@ user_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
 expires_at    timestamptz NOT NULL
 created_at    timestamptz NOT NULL DEFAULT now()
 ```
+
+> **Email-verifiering ingår inte i Milestone 1.** Ingen `email_verified_at`, verifieringstoken, mailadapter eller verify-endpoint. Det krävs före publik beta (se `docs/MVP.md`).
 
 - Lösenord: Argon2id
 - Migrationer via `packages/db` (SQL-filer, numrerade)
@@ -151,7 +173,9 @@ web        :3000
 worker     (ingen port)
 ```
 
-`docker compose up` ska ge fungerande stack utan manuella steg utöver `cp .env.example .env`.
+**Canonical:** `docker compose -f infra/docker-compose.yml up --build` ska ge fungerande stack utan manuella steg utöver `cp .env.example .env`.
+
+**Fast dev:** PostgreSQL i Docker + `pnpm dev` på hosten (se ovan).
 
 ### 9. Tester (minimum)
 
@@ -159,28 +183,32 @@ worker     (ingen port)
 - Integration: register → login → /me → logout
 - `/ready` returnerar 200 när DB är uppe
 
-### 10. Dokumentation
+### 10. Dokumentation och Cloud Agent
 
-Uppdatera `README.md` med faktiska kommandon:
+Uppdatera `README.md` med båda utvecklingslägena (canonical Docker + optional fast dev).
 
-```bash
-cp .env.example .env
-docker compose -f infra/docker-compose.yml up -d
-pnpm install
-pnpm db:migrate
-pnpm dev
+Uppdatera `.cursor/environment.json` så att `install` kör riktig projektsetup:
+
+```json
+{
+  "name": "turbok",
+  "install": "pnpm install && pnpm db:migrate"
+}
 ```
+
+Detta gör att Cursor Cloud kan installera projektet automatiskt efter monorepo-bootstrap. Tills Milestone 1 är klar förblir filen documentation-only.
 
 ## Definition of Done
 
 - [ ] `pnpm install && pnpm build` grönt
-- [ ] `pnpm dev` startar web (:3000) och api (:3001)
-- [ ] Docker Compose startar postgres + alla tjänster
+- [ ] **Canonical:** `docker compose -f infra/docker-compose.yml up --build` startar hela stacken
+- [ ] **Fast dev:** PostgreSQL i Docker + `pnpm dev` startar web (:3000) och api (:3001) på hosten
 - [ ] Registrering och inloggning fungerar i webbläsare
 - [ ] `/health` och `/ready` svarar korrekt
 - [ ] CI workflow grön på PR
 - [ ] Inga secrets i repo
-- [ ] README uppdaterad med lokal start
+- [ ] README uppdaterad med lokal start (båda lägena)
+- [ ] `.cursor/environment.json` uppdaterad med riktig `pnpm install` (och ev. `pnpm db:migrate`)
 
 ## Vad du INTE ska bygga i Milestone 1
 
@@ -189,6 +217,7 @@ pnpm dev
 - PDF-generering
 - Community, discovery
 - Externa integrationer (SMHI, Lantmäteriet)
+- Email-verifiering (token, mailadapter, verify-endpoint)
 - Admin UI (kommer i Milestone 5)
 - Produktionsdeploy till VPS (kommer i Milestone 10)
 
@@ -208,7 +237,7 @@ Klistra in följande som uppgift till Cursor:
 
 **Implementera Milestone 1 enligt `docs/MILESTONE_1.md`.**
 
-Skapa monorepo med apps/web (Next.js), apps/api (Fastify), apps/worker (pg-boss), packages/db (Kysely + PostGIS). Implementera auth (email/lösenord, Argon2id, sessions). Docker Compose för lokal utveckling. CI med lint/typecheck/test/build. Uppdatera README med startinstruktioner.
+Skapa monorepo med apps/web (Next.js), apps/api (Fastify), apps/worker (pg-boss), packages/db (Kysely + PostGIS). Implementera auth (email/lösenord, Argon2id, sessions — utan email-verifiering). Docker Compose för lokal utveckling. CI med lint/typecheck/test/build. Uppdatera README med startinstruktioner och `.cursor/environment.json` med riktig pnpm-install.
 
 Följ `docs/PRODUCT_SPEC.md`, `docs/ARCHITECTURE.md` och `.cursor/rules/`. Bygg inte karta, trips eller PDF.
 

@@ -26,26 +26,37 @@ verified_at
 
 ## Lantmäteriet
 
+**Primär produkt:** [Topografi 50 Nedladdning, vektor](https://geotorget.lantmateriet.se/dokument/projects/topografi-50-nedladdning-vektor/) (aktuell version t.ex. 2026.05, avgiftsfri/CC0).
+
 **Användning:**
 
 - Topografisk karta (visning)
 - Höjdkurvor och höjddata (höjdprofil, ascent/descent)
 - Hydrografi
-- Stigar och leder
+- Stigar och topografisk fjällinformation (referenslager)
 - Ortnamn
 - Ortofoto (valfritt, P2)
 
+**Viktigt — routing vs kartdata:**
+
+Lantmäteriet Topografi 50 innehåller stigar och annan topografisk data, men Turbok ska **inte** behandla den som en komplett, auktoritativ ledgraf för routing. Turbok bygger, kuraterar och kvalitetssäkrar sin egen `trail_graph` (`trail_nodes` / `trail_segments`). Lantmäteriet-data kan användas som underlag vid import och kartvisning, men routningsbeslut och segmentmetadata ägs av Turbok.
+
 **Implementation:**
 
-- Kontrollera aktuell licens och produktvillkor (t.ex. öppna data vs API-avtal)
+- Kontrollera aktuell licens och produktvillkor vid implementation
 - Cacha tiles/data lokalt där licens tillåter
 - Ange källa i kartattribution
+- Separera import av LM-stigar (referens) från Turboks kuraterade trail graph
 
 **Risk:** licensändringar, API-begränsningar. Planera för manuell fallback (egen trail data).
 
 ---
 
 ## SMHI
+
+**API:** [Meteorologisk prognos `SNOW1gv1`](https://www.smhi.se/data/om-smhis-data/uppdateringar-oppna-data/uppdateringar-i-smhis-oppna-data/2025-09-12-nya-apier-for-meteorologiska-prognoser-och-analyser) (aktuellt öppet API för väderprognoser).
+
+> **Använd inte** det avvecklade API:et `PMP3gv2` (nedlagt 31 mars 2026). All implementation ska utgå från `SNOW1gv1`.
 
 **Användning:**
 
@@ -54,6 +65,7 @@ verified_at
 
 **Implementation:**
 
+- Integrera via `SNOW1gv1`-endpointen; dokumentera exakt URL och parametrar i `packages/integrations`
 - Cachelagra prognoser med `retrieved_at`
 - Visa inte väder utanför faktisk prognoshorisont som "planeringsunderlag"
 - Uppdatera via worker-jobb (`weather.refresh`)

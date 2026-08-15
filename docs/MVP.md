@@ -38,9 +38,10 @@ Hög kvalitet på litet område före geografisk expansion. Varje segment ska ha
 ### Konto
 
 - [ ] Skapa konto (email + lösenord)
-- [ ] Verifierad email
 - [ ] Logga in / logga ut
 - [ ] Session via säkra cookies
+
+> **Email-verifiering** ingår inte i P0. Milestone 1 levererar register/login/logout/session utan verifieringsflöde. Verifierad email krävs **före publik beta** (se nedan).
 
 ### Planera
 
@@ -159,6 +160,7 @@ Se `PRODUCT_SPEC.md` §62. Särskilt:
 
 Produkten är redo för privat beta när P0 ovan är uppfyllt plus:
 
+- [ ] **Email-verifiering** implementerad (verifieringstoken, endpoint, mailadapter)
 - [ ] Abisko–Nikkaluokta-dataset finns i databasen
 - [ ] Karta renderas korrekt i pilotområdet
 - [ ] Databasbackup konfigurerad (daglig, 30 dagar retention)
