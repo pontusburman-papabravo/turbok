@@ -8,7 +8,7 @@ Turbok är ett kartbaserat planeringsverktyg för självplanerade flerdagarstur 
 
 ## Status
 
-Projektet är i **greenfield-fas**. Denna repository innehåller produktspecifikation, arkitektur och Cursor-regler. Applikationskod (monorepo) implementeras från Milestone 1.
+Milestone 1 levererad: monorepo med auth, PostGIS, Docker Compose och CI. Karta och trip builder kommer i Milestone 2–3.
 
 ## Dokumentation
 
@@ -28,47 +28,67 @@ Projektet är i **greenfield-fas**. Denna repository innehåller produktspecifik
 - **Worker:** PDF-generering, thumbnails, jobbkö (pg-boss)
 - **Drift:** Egen VPS, Docker Compose, Caddy
 
-## Monorepo (planerad struktur)
+## Monorepo
 
 ```text
 turbok/
   apps/
     web/          # Next.js PWA
     api/          # Fastify REST API
-    worker/       # Bakgrundsjobb
+    worker/       # pg-boss worker
   packages/
-    db/           # Kysely, migrationer
-    domain/       # Affärslogik
-    maps/         # Kart- och routinghjälpare
-    pdf/          # Turblad-mallar
-    integrations/ # SMHI, Lantmäteriet, m.fl.
-    ui/           # Delade UI-komponenter
-  infra/          # Docker, Caddy, deploy
+    db/           # Kysely, migrationer, PostGIS
+    domain/       # Delade typer
+    ui/           # Delade UI-komponenter (senare)
+  infra/          # Docker Compose, Caddy
   docs/
 ```
 
 ## Lokal utveckling
 
-Applikationskod finns ännu inte. När Milestone 1 är implementerad:
+Kopiera miljövariabler:
+
+```bash
+cp .env.example .env
+```
 
 **Canonical — hela stacken i Docker:**
 
 ```bash
-cp .env.example .env
 docker compose -f infra/docker-compose.yml up --build
 ```
+
+Öppna [http://localhost:3000](http://localhost:3000). API: [http://localhost:3001/health](http://localhost:3001/health).
 
 **Fast dev — valfritt (PostgreSQL i Docker, appar på hosten):**
 
 ```bash
-cp .env.example .env
 docker compose -f infra/docker-compose.yml up -d postgres
 pnpm install
 pnpm db:migrate
 pnpm dev
 ```
 
-Tills dess: läs [docs/MILESTONE_1.md](docs/MILESTONE_1.md) och följ specen i [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md).
+### Övriga kommandon
+
+```bash
+pnpm build       # bygg alla paket
+pnpm lint        # ESLint
+pnpm typecheck   # TypeScript
+pnpm test        # tester (integration kräver DATABASE_URL)
+pnpm db:migrate  # kör SQL-migrationer
+```
+
+## API (Milestone 1)
+
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
+GET  /health
+GET  /ready
+```
 
 ## Milstolpar
 
