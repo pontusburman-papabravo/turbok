@@ -1,0 +1,29 @@
+---
+description: Turbok product spec is the source of truth for all feature decisions
+alwaysApply: true
+---
+
+# Source of truth
+
+- `docs/PRODUCT_SPEC.md` is the authoritative product specification.
+- `docs/MVP.md` defines P0/P1 scope for the first geographic pilot.
+- `docs/ARCHITECTURE.md` defines technical structure and stack choices.
+- When in doubt, prefer the spec over ad-hoc suggestions.
+
+# Scope control
+
+Do NOT implement features listed under "Vad Turbok INTE ska göra i MVP" in PRODUCT_SPEC §62:
+
+- forum, messaging, followers, social feed, likes, challenges, badges
+- turn-by-turn navigation, SOS, live tracking
+- bokningsplattform, marknadsplats, automatisk AI-guide
+
+# Milestone discipline
+
+- Complete P0 end-to-end before P1.
+- Do not start P2/P3 before P0 works.
+- Follow milestone order in README and MILESTONE_1.
+
+# Design principle
+
+Ask before building: "Hjälper detta användaren planera en bättre tur eller bevara kunskap som hjälper nästa vandrare?"
