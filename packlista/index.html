@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Packlista – Abisko → Nikkaluokta</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --surface: #ffffff;
+      --text: #1a2e1a;
+      --muted: #5c6b5c;
+      --accent: #2d5a3d;
+      --accent-light: #e8f0ea;
+      --border: #d8dfd4;
+      --done: #7a9a7a;
+      --warn: #8b6914;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    header {
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.02em;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    .meta strong {
+      color: var(--text);
+    }
+
+    .progress-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .progress-label {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .progress-count {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .progress-bar {
+      height: 10px;
+      background: var(--accent-light);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font: inherit;
+      font-size: 0.85rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--accent-light);
+      border-color: #b8c9b8;
+    }
+
+    button.danger:hover {
+      background: #fdecea;
+      border-color: #e8b4b0;
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 0.85rem;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      background: var(--accent-light);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 650;
+    }
+
+    .section-count {
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .section-count.done {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0.35rem 0;
+    }
+
+    li {
+      border-bottom: 1px solid #eef2eb;
+    }
+
+    li:last-child {
+      border-bottom: none;
+    }
+
+    label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.65rem 1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    label:hover {
+      background: #fafbf9;
+    }
+
+    label.checked {
+      color: var(--done);
+    }
+
+    label.checked .item-text {
+      text-decoration: line-through;
+      text-decoration-color: #b0c4b0;
+    }
+
+    input[type="checkbox"] {
+      width: 1.1rem;
+      height: 1.1rem;
+      margin-top: 0.15rem;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .item-text {
+      flex: 1;
+    }
+
+    .info-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      margin-top: 1.25rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .info-box h3 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .info-box ul {
+      padding-left: 1.1rem;
+      margin: 0.35rem 0 0;
+      list-style: disc;
+    }
+
+    .info-box li {
+      border: none;
+      padding: 0.15rem 0;
+    }
+
+    .weight-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .weight-table td {
+      padding: 0.25rem 0;
+      vertical-align: top;
+    }
+
+    .weight-table td:first-child {
+      padding-right: 1rem;
+      color: var(--text);
+    }
+
+    .weight-table td:last-child {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .goal {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .goal strong {
+      color: var(--warn);
+    }
+
+    footer {
+      margin-top: 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Packlista</h1>
+      <p class="meta">
+        <strong>Abisko → Nikkaluokta</strong> · 1–10 september · STF-stugor · Osprey Stratos 36
+      </p>
+    </header>
+
+    <div class="progress-card">
+      <div class="progress-top">
+        <span class="progress-label">Packstatus</span>
+        <span class="progress-count" id="progress-count">0 / 0</span>
+      </div>
+      <div class="progress-bar" aria-hidden="true">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="actions">
+        <button type="button" id="btn-hide-done">Dölj klara</button>
+        <button type="button" id="btn-show-all">Visa alla</button>
+        <button type="button" class="danger" id="btn-reset">Nollställ allt</button>
+      </div>
+    </div>
+
+    <div id="checklist"></div>
+
+    <div class="info-box">
+      <h3>Vikt att hålla koll på</h3>
+      <table class="weight-table">
+        <tr><td>Ryggsäck</td><td>~1,4–1,6 kg</td></tr>
+        <tr><td>Kläder/regn/värme</td><td>~2,0–2,5 kg</td></tr>
+        <tr><td>Säkerhet/navigation/elektronik</td><td>~1,0–1,5 kg</td></tr>
+        <tr><td>Stug/sov/hygien</td><td>~0,7–1,0 kg</td></tr>
+        <tr><td>Kök + gas</td><td>~0,5–0,7 kg</td></tr>
+        <tr><td>Böcker</td><td>~0,4–0,6 kg</td></tr>
+        <tr><td>Mat (per etapp)</td><td>~1–2 kg</td></tr>
+        <tr><td>Vatten</td><td>~0,5–1,0 kg</td></tr>
+      </table>
+      <p class="goal">
+        <strong>Bra startvikt:</strong> ca 9,5–11 kg inkl. mat och vatten.
+        Undvik att lämna Abisko över 12 kg.
+      </p>
+    </div>
+
+    <div class="info-box">
+      <h3>Prioriteringar</h3>
+      <ul>
+        <li>Behöver inte sovsäck, tält eller 8–10 dagars mat.</li>
+        <li>Snåla inte med varmt lager, mössa och handskar – kallt väder vid Tjäktja, Nallo och Sälka.</li>
+        <li>Behåll gasbrännare och boiler för varm mat ute på fjället.</li>
+        <li>Hellre 300–400 g extra stugkläder än fler ombyten vandringskläder.</li>
+      </ul>
+    </div>
+
+    <footer>Status sparas lokalt i webbläsaren.</footer>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "abisko-nikkaluokta-packlista-v1";
+
+    const sections = [
+      {
+        id: "pa-kroppen",
+        title: "På kroppen",
+        items: [
+          "Meindl MFS Active kängor",
+          "Tierra convertible-byxor",
+          "Underkläder",
+          "Ull/T-shirt",
+          "Vandringsstrumpor",
+          "Keps/mössa beroende på väder",
+          "Garmin D2 PX"
+        ]
+      },
+      {
+        id: "regn-varme",
+        title: "Regn & värme",
+        items: [
+          "Haglöfs LIM regnjacka",
+          "Haglöfs LIM regnbyxor",
+          "Haglöfs LIM isoleringsjacka (dun/syntet)"
+        ]
+      },
+      {
+        id: "stugklader",
+        title: "Stugkläder",
+        items: [
+          "Ren T-shirt/ulltröja",
+          "Rena underkläder",
+          "Rena strumpor",
+          "Lätta byxor/underställ att ha inne"
+        ]
+      },
+      {
+        id: "extra-vandring",
+        title: "Extra vandringskläder",
+        items: [
+          "1 extra underställströja",
+          "1 underställsbyxa",
+          "1–2 par extra vandringsstrumpor"
+        ]
+      },
+      {
+        id: "huvud-hander",
+        title: "Huvud/händer",
+        items: [
+          "Varm mössa",
+          "Tunna handskar/buff"
+        ]
+      },
+      {
+        id: "sovning",
+        title: "Sovning",
+        items: [
+          "Silkeslakan (ca 250 g)"
+        ]
+      },
+      {
+        id: "sakerhet",
+        title: "Säkerhet",
+        items: [
+          "PLB",
+          "Första hjälpen",
+          "Skavsårsplåster",
+          "Tejp",
+          "Eventuella personliga mediciner"
+        ]
+      },
+      {
+        id: "navigation",
+        title: "Navigation",
+        items: [
+          "Fjällkarta/pappersunderlag + guidebok",
+          "Kompass"
+        ]
+      },
+      {
+        id: "elektronik",
+        title: "Elektronik",
+        items: [
+          "Mobil",
+          "Garmin",
+          "Laddkablar",
+          "Liten powerbank"
+        ]
+      },
+      {
+        id: "hygien",
+        title: "Hygien",
+        items: [
+          "Tandborste",
+          "Liten tandkräm",
+          "Deodorant",
+          "Lite tvål",
+          "Öronproppar",
+          "Toalettpapper/näsdukar"
+        ]
+      },
+      {
+        id: "matlagning",
+        title: "Matlagning",
+        items: [
+          "Liten gasbrännare",
+          "Gas",
+          "Liten boiler/kastrull",
+          "Tändare"
+        ]
+      },
+      {
+        id: "mat",
+        title: "Mat",
+        items: [
+          "Mat mellan stugorna (köp huvuddelen längs leden)"
+        ]
+      },
+      {
+        id: "vatten",
+        title: "Vatten",
+        items: [
+          "Flaska (0,5–1 liter kapacitet)"
+        ]
+      },
+      {
+        id: "lasning",
+        title: "Läsning",
+        items: [
+          "1 pocketbok",
+          "1 guidebok"
+        ]
+      },
+      {
+        id: "ovrigt",
+        title: "Övrigt",
+        items: [
+          "Solglasögon",
+          "Liten solkräm",
+          "Myggmedel (vid behov)",
+          "Liten handduk"
+        ]
+      }
+    ];
+
+    function itemId(sectionId, index) {
+      return `${sectionId}::${index}`;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    let state = loadState();
+    let hideDone = false;
+
+    const checklistEl = document.getElementById("checklist");
+    const progressCountEl = document.getElementById("progress-count");
+    const progressFillEl = document.getElementById("progress-fill");
+
+    function allItems() {
+      return sections.flatMap((section) =>
+        section.items.map((text, index) => ({
+          id: itemId(section.id, index),
+          text,
+          sectionId: section.id
+        }))
+      );
+    }
+
+    function updateProgress() {
+      const items = allItems();
+      const total = items.length;
+      const done = items.filter((item) => state[item.id]).length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+
+      progressCountEl.textContent = `${done} / ${total} (${pct}%)`;
+      progressFillEl.style.width = `${pct}%`;
+    }
+
+    function render() {
+      checklistEl.innerHTML = "";
+
+      sections.forEach((section) => {
+        const sectionItems = section.items.map((text, index) => ({
+          id: itemId(section.id, index),
+          text
+        }));
+
+        const doneCount = sectionItems.filter((item) => state[item.id]).length;
+        const allDone = doneCount === sectionItems.length;
+
+        if (hideDone && allDone) {
+          return;
+        }
+
+        const visibleItems = hideDone
+          ? sectionItems.filter((item) => !state[item.id])
+          : sectionItems;
+
+        if (visibleItems.length === 0) {
+          return;
+        }
+
+        const sectionEl = document.createElement("section");
+        sectionEl.dataset.section = section.id;
+
+        const headerEl = document.createElement("div");
+        headerEl.className = "section-header";
+        headerEl.innerHTML = `
+          <h2>${section.title}</h2>
+          <span class="section-count${allDone ? " done" : ""}">${doneCount}/${sectionItems.length}</span>
+        `;
+
+        const listEl = document.createElement("ul");
+
+        visibleItems.forEach((item) => {
+          const li = document.createElement("li");
+          const label = document.createElement("label");
+          const checked = !!state[item.id];
+          if (checked) label.classList.add("checked");
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = checked;
+          checkbox.dataset.id = item.id;
+          checkbox.addEventListener("change", () => {
+            state[item.id] = checkbox.checked;
+            saveState(state);
+            render();
+            updateProgress();
+          });
+
+          const span = document.createElement("span");
+          span.className = "item-text";
+          span.textContent = item.text;
+
+          label.appendChild(checkbox);
+          label.appendChild(span);
+          li.appendChild(label);
+          listEl.appendChild(li);
+        });
+
+        sectionEl.appendChild(headerEl);
+        sectionEl.appendChild(listEl);
+        checklistEl.appendChild(sectionEl);
+      });
+
+      updateProgress();
+    }
+
+    document.getElementById("btn-hide-done").addEventListener("click", () => {
+      hideDone = true;
+      render();
+    });
+
+    document.getElementById("btn-show-all").addEventListener("click", () => {
+      hideDone = false;
+      render();
+    });
+
+    document.getElementById("btn-reset").addEventListener("click", () => {
+      if (confirm("Nollställa hela packlistan?")) {
+        state = {};
+        saveState(state);
+        hideDone = false;
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
